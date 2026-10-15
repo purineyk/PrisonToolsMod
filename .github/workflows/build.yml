@@ -4,6 +4,10 @@ on:
   push:
   workflow_dispatch:
 
+concurrency:
+  group: prisontools-build
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
