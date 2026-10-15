@@ -13,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
@@ -21,6 +20,7 @@ import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.dispenser.BlockSource;
@@ -55,8 +55,18 @@ public class PrisonToolsMod implements ModInitializer {
         return Registry.register(BuiltInRegistries.ITEM, key, item);
     }
 
+    // ドアの上半分・下半分を同じドアとして扱う
+    private static BlockPos doorBasePos(BlockPos pos, Level level) {
+        BlockState state = level.getBlockState(pos);
+        if (state.is(Blocks.IRON_DOOR) && state.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER) {
+            return pos.below();
+        }
+        return pos;
+    }
+
     public static String doorKey(BlockPos pos, Level level) {
-        return level.dimension().identifier() + "|" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        BlockPos base = doorBasePos(pos, level);
+        return level.dimension().identifier() + "|" + base.getX() + "," + base.getY() + "," + base.getZ();
     }
 
     @Override
@@ -77,7 +87,7 @@ public class PrisonToolsMod implements ModInitializer {
 
         AttackEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
             if (!level.isClientSide() && player.getItemInHand(hand).is(BATON) && entity instanceof Player target
-                    && target != player && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                    && target != player && level instanceof net.minecraft.server.level.ServerLevel) {
                 target.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                     net.minecraft.world.effect.MobEffects.SLOWNESS, 60, 6, false, true, true));
                 target.addEffect(new net.minecraft.world.effect.MobEffectInstance(
@@ -99,7 +109,6 @@ public class PrisonToolsMod implements ModInitializer {
     }
 
     private static boolean hasPrisonTag(ServerPlayer player) {
-        // Minecraft 26.1.x の実行時API名の差に備えて確認する
         for (String methodName : new String[] {"getCommandTags", "getTags"}) {
             try {
                 Object result = player.getClass().getMethod(methodName).invoke(player);
@@ -121,9 +130,18 @@ public class PrisonToolsMod implements ModInitializer {
                 BlockPos target = source.pos().relative(direction);
                 BlockState state = source.level().getBlockState(target);
                 if (state.is(Blocks.IRON_DOOR)) {
-                    String registered = DOOR_KEYS.get(doorKey(target, source.level()));
+                    BlockPos base = doorBasePos(target, source.level());
+                    String registered = DOOR_KEYS.get(doorKey(base, source.level()));
                     if (item.colour().equals("master") || item.colour().equals(registered)) {
-                        source.level().setBlock(target, state.setValue(DoorBlock.OPEN, true), 3);
+                        BlockPos upper = base.above();
+                        BlockState lowerState = source.level().getBlockState(base);
+                        BlockState upperState = source.level().getBlockState(upper);
+                        if (lowerState.is(Blocks.IRON_DOOR)) {
+                            source.level().setBlock(base, lowerState.setValue(DoorBlock.OPEN, true), 3);
+                        }
+                        if (upperState.is(Blocks.IRON_DOOR)) {
+                            source.level().setBlock(upper, upperState.setValue(DoorBlock.OPEN, true), 3);
+                        }
                         return stack;
                     }
                 }
