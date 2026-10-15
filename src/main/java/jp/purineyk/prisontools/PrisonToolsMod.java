@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.entity.BlockSource;
+import net.minecraft.core.dispenser.BlockSource;
 import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -56,7 +56,7 @@ public class PrisonToolsMod implements ModInitializer {
     }
 
     public static String doorKey(BlockPos pos, Level level) {
-        return level.dimension().location() + "|" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        return level.dimension().identifier() + "|" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
     }
 
     @Override
@@ -89,7 +89,7 @@ public class PrisonToolsMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 BlockPos feet = player.blockPosition();
-                if (!player.getTags().contains("prison") || !player.level().getBlockState(feet.below()).is(Blocks.GOLD_BLOCK)) continue;
+                if (!player.getScoreboardTags().contains("prison") || !player.level().getBlockState(feet.below()).is(Blocks.GOLD_BLOCK)) continue;
                 if (!hasPoweredLever(player.level(), feet, 6) || player.getInventory().isEmpty()) continue;
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§c警報！持ち込み禁止品を検知！"));
                 toggleNearbyLamps(player.level(), feet, 10);
@@ -128,7 +128,7 @@ public class PrisonToolsMod implements ModInitializer {
         for (BlockPos pos : BlockPos.betweenClosed(center.offset(-radius, -radius, -radius), center.offset(radius, radius, radius))) {
             BlockState state = level.getBlockState(pos);
             if (state.is(Blocks.REDSTONE_LAMP)) {
-                level.setBlock(pos, state.setValue(RedstoneLampBlock.LIT, !state.getValue(RedStoneLampBlock.LIT)), 3);
+                level.setBlock(pos, state.setValue(RedstoneLampBlock.LIT, !state.getValue(RedstoneLampBlock.LIT)), 3);
             }
         }
     }
