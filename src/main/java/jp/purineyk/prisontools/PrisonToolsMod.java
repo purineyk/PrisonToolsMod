@@ -126,23 +126,33 @@ public class PrisonToolsMod implements ModInitializer {
         DispenserBlock.registerBehavior(item, new DefaultDispenseItemBehavior() {
             @Override
             protected ItemStack execute(BlockSource source, ItemStack stack) {
+                Level level = source.level();
                 Direction direction = source.state().getValue(DispenserBlock.FACING);
                 BlockPos target = source.pos().relative(direction);
-                BlockState state = source.level().getBlockState(target);
-                if (state.is(Blocks.IRON_DOOR)) {
-                    BlockPos base = doorBasePos(target, source.level());
-                    String registered = DOOR_KEYS.get(doorKey(base, source.level()));
+
+                // ディスペンサーがドアの下半分・上半分のどちらを向いていても対象にする
+                BlockPos doorPos = null;
+                for (BlockPos candidate : new BlockPos[] {target, target.above(), target.below()}) {
+                    if (level.getBlockState(candidate).is(Blocks.IRON_DOOR)) {
+                        doorPos = candidate;
+                        break;
+                    }
+                }
+
+                if (doorPos != null) {
+                    BlockPos base = doorBasePos(doorPos, level);
+                    String registered = DOOR_KEYS.get(doorKey(base, level));
                     if (item.colour().equals("master") || item.colour().equals(registered)) {
                         BlockPos upper = base.above();
-                        BlockState lowerState = source.level().getBlockState(base);
-                        BlockState upperState = source.level().getBlockState(upper);
-                        if (lowerState.is(Blocks.IRON_DOOR)) {
-                            source.level().setBlock(base, lowerState.setValue(DoorBlock.OPEN, true), 3);
+                        BlockState lowerState = level.getBlockState(base);
+                        BlockState upperState = level.getBlockState(upper);
+
+                        if (lowerState.is(Blocks.IRON_DOOR) && upperState.is(Blocks.IRON_DOOR)) {
+                            // ドアの状態を両方の半分に反映し、近隣ブロックにも更新を通知する
+                            level.setBlockAndUpdate(base, lowerState.setValue(DoorBlock.OPEN, true));
+                            level.setBlockAndUpdate(upper, upperState.setValue(DoorBlock.OPEN, true));
+                            return stack;
                         }
-                        if (upperState.is(Blocks.IRON_DOOR)) {
-                            source.level().setBlock(upper, upperState.setValue(DoorBlock.OPEN, true), 3);
-                        }
-                        return stack;
                     }
                 }
                 return super.execute(source, stack);
