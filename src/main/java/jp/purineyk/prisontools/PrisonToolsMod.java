@@ -89,13 +89,28 @@ public class PrisonToolsMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 BlockPos feet = player.blockPosition();
-                if (!player.getCommandTags().contains("prison")) continue;
+                if (!hasPrisonTag(player)) continue;
                 if (!player.level().getBlockState(feet.below()).is(Blocks.GOLD_BLOCK)) continue;
                 if (!hasPoweredLever(player.level(), feet, 6) || player.getInventory().isEmpty()) continue;
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§c警報！持ち込み禁止品を検知！"));
                 toggleNearbyLamps(player.level(), feet, 10);
             }
         });
+    }
+
+    private static boolean hasPrisonTag(ServerPlayer player) {
+        // Minecraft 26.1.x の実行時API名の差に備えて確認する
+        for (String methodName : new String[] {"getCommandTags", "getTags"}) {
+            try {
+                Object result = player.getClass().getMethod(methodName).invoke(player);
+                if (result instanceof java.util.Set<?> tags) {
+                    return tags.contains("prison");
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // 次の候補を試す
+            }
+        }
+        return false;
     }
 
     private static void registerDispenserKey(KeyItem item) {
