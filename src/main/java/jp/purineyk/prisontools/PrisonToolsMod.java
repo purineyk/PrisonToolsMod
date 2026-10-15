@@ -89,6 +89,7 @@ public class PrisonToolsMod implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 BlockPos feet = player.blockPosition();
+                if (!player.getTags().contains("prison")) continue;
                 if (!player.level().getBlockState(feet.below()).is(Blocks.GOLD_BLOCK)) continue;
                 if (!hasPoweredLever(player.level(), feet, 6) || player.getInventory().isEmpty()) continue;
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§c警報！持ち込み禁止品を検知！"));
