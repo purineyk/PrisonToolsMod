@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "prisontools",
+  "version": "${version}",
+  "name": "Prison Tools",
+  "description": "Keys, a stun baton, and prison contraband inspection tools.",
+  "authors": ["purineyk"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["jp.purineyk.prisontools.PrisonToolsMod"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.1.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
