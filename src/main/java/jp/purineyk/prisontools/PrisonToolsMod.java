@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LeverBlock;
-import net.minecraft.world.level.block.RedStoneLampBlock;
+import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,6 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PrisonToolsMod implements ModInitializer {
@@ -42,17 +43,15 @@ public class PrisonToolsMod implements ModInitializer {
     public static final KeyItem YELLOW_KEY = key("yellow_key", "yellow");
     public static final KeyItem BLACK_KEY = key("black_key", "black");
     public static final KeyItem MASTER_KEY = key("master_key", "master");
-    public static final Item BATON = register("baton", new Item(new Item.Properties().stacksTo(1)));
+    public static final Item BATON = register("baton", Item::new, new Item.Properties().stacksTo(1));
 
     private static KeyItem key(String name, String colour) {
-        return register(name, new KeyItem(colour, new Item.Properties().stacksTo(1)));
+        return register(name, properties -> new KeyItem(colour, properties), new Item.Properties().stacksTo(1));
     }
 
-    private static <T extends Item> T register(String name, T item) {
+    private static <T extends Item> T register(String name, Function<Item.Properties, T> factory, Item.Properties properties) {
         ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(MOD_ID, name));
-        item = (T) item;
-        // In 26.1, an item's registry key is assigned through its properties.
-        // The key-specific constructor receives properties with the correct registry identity.
+        T item = factory.apply(properties.setId(key));
         return Registry.register(BuiltInRegistries.ITEM, key, item);
     }
 
@@ -129,7 +128,7 @@ public class PrisonToolsMod implements ModInitializer {
         for (BlockPos pos : BlockPos.betweenClosed(center.offset(-radius, -radius, -radius), center.offset(radius, radius, radius))) {
             BlockState state = level.getBlockState(pos);
             if (state.is(Blocks.REDSTONE_LAMP)) {
-                level.setBlock(pos, state.setValue(RedStoneLampBlock.LIT, !state.getValue(RedStoneLampBlock.LIT)), 3);
+                level.setBlock(pos, state.setValue(RedstoneLampBlock.LIT, !state.getValue(RedStoneLampBlock.LIT)), 3);
             }
         }
     }
